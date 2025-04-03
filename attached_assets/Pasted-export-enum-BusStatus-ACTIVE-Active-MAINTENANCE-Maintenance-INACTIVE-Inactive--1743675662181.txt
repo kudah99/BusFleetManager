@@ -1,0 +1,144 @@
+export enum BusStatus {
+  ACTIVE = "Active",
+  MAINTENANCE = "Maintenance",
+  INACTIVE = "Inactive",
+  RETIRED = "Retired",
+}
+
+// Bus type enum
+export enum BusType {
+  STANDARD = "Standard",
+  LUXURY = "Luxury",
+  MINIBUS = "Minibus",
+  DOUBLE_DECKER = "Double Decker",
+  SLEEPER = "Sleeper",
+}
+
+// Fuel type enum
+export enum FuelType {
+  DIESEL = "Diesel",
+  GASOLINE = "Gasoline",
+  ELECTRIC = "Electric",
+  HYBRID = "Hybrid",
+  CNG = "CNG",
+  LNG = "LNG",
+}
+
+// Bus schema for validation
+export const busSchema = z.object({
+  id: z.string().optional(),
+  registrationNumber: z.string().min(2, "Registration number must be at least 2 characters"),
+  licensePlate: z.string().min(2, "License plate must be at least 2 characters"),
+  model: z.string().min(2, "Model must be at least 2 characters"),
+  manufacturer: z.string().min(2, "Manufacturer must be at least 2 characters"),
+  year: z.number().min(1900, "Year must be at least 1900"),
+  type: z.nativeEnum(BusType).default(BusType.STANDARD),
+  capacity: z.number().min(1, "Capacity must be at least 1"),
+  status: z.nativeEnum(BusStatus).default(BusStatus.ACTIVE),
+  fuelType: z.nativeEnum(FuelType).default(FuelType.DIESEL),
+  mileage: z.number().min(0, "Mileage must be at least 0"),
+  lastMaintenanceDate: z.date().optional(),
+  nextMaintenanceDate: z.date().optional(),
+  purchaseDate: z.date().optional(),
+  purchasePrice: z.number().min(0, "Purchase price must be at least 0").optional(),
+  insuranceExpiryDate: z.date().optional(),
+  currentLocationId: z.string().optional(),
+  assignedDriverId: z.string().optional(),
+  features: z.array(z.string()).default([]),
+  notes: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+// Bus type
+export type Bus = z.infer<typeof busSchema>
+
+// Bus with ID type (for database records)
+export type BusWithId = Bus & { id: string }
+
+// Bus with relations
+export type BusWithRelations = BusWithId & {
+  assignedDriver?: {
+    id: string
+    name: string
+  }
+  currentLocation?: {
+    id: string
+    name: string
+    address: string
+  }
+}
+
+// Bus maintenance record schema
+export const busMaintenanceSchema = z.object({
+  id: z.string().optional(),
+  busId: z.string(),
+  date: z.date(),
+  type: z.string().min(2, "Type must be at least 2 characters"),
+  description: z.string().min(2, "Description must be at least 2 characters"),
+  cost: z.number().min(0, "Cost must be at least 0"),
+  mileage: z.number().min(0, "Mileage must be at least 0"),
+  technicianId: z.string().optional(),
+  technicianName: z.string().optional(),
+  location: z.string().optional(),
+  parts: z
+    .array(
+      z.object({
+        name: z.string(),
+        quantity: z.number().min(1),
+        cost: z.number().min(0),
+      }),
+    )
+    .optional(),
+  status: z.enum(["Scheduled", "In Progress", "Completed", "Cancelled"]).default("Scheduled"),
+  completedAt: z.date().optional(),
+  notes: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+// Bus maintenance record type
+export type BusMaintenance = z.infer<typeof busMaintenanceSchema>
+
+// Bus maintenance record with ID type (for database records)
+export type BusMaintenanceWithId = BusMaintenance & { id: string }
+
+// Bus expense schema
+export const busExpenseSchema = z.object({
+  id: z.string().optional(),
+  busId: z.string(),
+  date: z.date(),
+  type: z.enum(["Fuel", "Maintenance", "Insurance", "Registration", "Toll", "Parking", "Cleaning", "Other"]),
+  amount: z.number().min(0, "Amount must be at least 0"),
+  description: z.string().optional(),
+  receiptUrl: z.string().optional(),
+  paymentMethod: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+// Bus expense type
+export type BusExpense = z.infer<typeof busExpenseSchema>
+
+// Bus expense with ID type (for database records)
+export type BusExpenseWithId = BusExpense & { id: string }
+
+// Bus document schema
+export const busDocumentSchema = z.object({
+  id: z.string().optional(),
+  busId: z.string(),
+  type: z.enum(["Registration", "Insurance", "Inspection", "Permit", "Warranty", "Purchase", "Other"]),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  fileUrl: z.string().optional(),
+  issueDate: z.date().optional(),
+  expiryDate: z.date().optional(),
+  notes: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+// Bus document type
+export type BusDocument = z.infer<typeof busDocumentSchema>
+
+// Bus document with ID type (for database records)
+export type BusDocumentWithId = BusDocument & { id: string }

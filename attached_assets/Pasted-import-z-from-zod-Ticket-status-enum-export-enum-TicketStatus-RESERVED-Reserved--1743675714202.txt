@@ -1,0 +1,197 @@
+import { z } from "zod"
+
+// Ticket status enum
+export enum TicketStatus {
+  RESERVED = "Reserved",
+  CONFIRMED = "Confirmed",
+  CHECKED_IN = "Checked In",
+  USED = "Used",
+  CANCELLED = "Cancelled",
+  REFUNDED = "Refunded",
+  EXPIRED = "Expired",
+}
+
+// Ticket type enum
+export enum TicketType {
+  ONE_WAY = "One Way",
+  ROUND_TRIP = "Round Trip",
+  MULTI_CITY = "Multi City",
+  SUBSCRIPTION = "Subscription",
+  SPECIAL = "Special",
+}
+
+// Payment status enum
+export enum PaymentStatus {
+  PENDING = "Pending",
+  COMPLETED = "Completed",
+  FAILED = "Failed",
+  REFUNDED = "Refunded",
+  PARTIALLY_REFUNDED = "Partially Refunded",
+}
+
+// Payment method enum
+export enum PaymentMethod {
+  CREDIT_CARD = "Credit Card",
+  DEBIT_CARD = "Debit Card",
+  PAYPAL = "PayPal",
+  BANK_TRANSFER = "Bank Transfer",
+  CASH = "Cash",
+  MOBILE_PAYMENT = "Mobile Payment",
+  OTHER = "Other",
+}
+
+// Ticket schema for validation
+export const ticketSchema = z.object({
+  id: z.string().optional(),
+  tripId: z.string(),
+  customerId: z.string().optional(), // Optional for anonymous bookings
+  bookingReference: z.string().optional(),
+  status: z.nativeEnum(TicketStatus).default(TicketStatus.RESERVED),
+  type: z.nativeEnum(TicketType).default(TicketType.ONE_WAY),
+  seatNumber: z.string().optional(),
+  passengerName: z.string().min(2, "Passenger name must be at least 2 characters"),
+  passengerEmail: z.string().email("Invalid email address").optional(),
+  passengerPhone: z.string().optional(),
+  passengerType: z.enum(["Adult", "Child", "Senior", "Student", "Military", "Other"]).default("Adult"),
+  specialRequests: z.string().optional(),
+  basePrice: z.number().min(0, "Base price must be at least 0"),
+  discountAmount: z.number().min(0, "Discount amount must be at least 0").default(0),
+  taxAmount: z.number().min(0, "Tax amount must be at least 0").default(0),
+  totalPrice: z.number().min(0, "Total price must be at least 0"),
+  paymentStatus: z.nativeEnum(PaymentStatus).default(PaymentStatus.PENDING),
+  paymentMethod: z.nativeEnum(PaymentMethod).optional(),
+  paymentReference: z.string().optional(),
+  paidAt: z.date().optional(),
+  checkedInAt: z.date().optional(),
+  checkedInBy: z.string().optional(),
+  cancellationReason: z.string().optional(),
+  cancellationDate: z.date().optional(),
+  refundAmount: z.number().min(0, "Refund amount must be at least 0").optional(),
+  refundDate: z.date().optional(),
+  refundReference: z.string().optional(),
+  issuedAt: z.date().optional(),
+  expiresAt: z.date().optional(),
+  notes: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+// Ticket type
+export type Ticket = z.infer<typeof ticketSchema>
+
+// Ticket with ID type (for database records)
+export type TicketWithId = Ticket & { id: string }
+
+// Ticket with relations
+export type TicketWithRelations = TicketWithId & {
+  trip: {
+    id: string
+    routeId: string
+    departureDate: Date
+    departureTime: string
+    arrivalDate: Date
+    arrivalTime: string
+    route: {
+      id: string
+      name: string
+      origin: string
+      destination: string
+    }
+  }
+  customer?: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string
+  }
+}
+
+// Booking schema (can contain multiple tickets)
+export const bookingSchema = z.object({
+  id: z.string().optional(),
+  customerId: z.string().optional(), // Optional for anonymous bookings
+  bookingReference: z.string(),
+  status: z.enum(["Pending", "Confirmed", "Cancelled", "Completed"]).default("Pending"),
+  totalAmount: z.number().min(0, "Total amount must be at least 0"),
+  discountAmount: z.number().min(0, "Discount amount must be at least 0").default(0),
+  taxAmount: z.number().min(0, "Tax amount must be at least 0").default(0),
+  finalAmount: z.number().min(0, "Final amount must be at least 0"),
+  paymentStatus: z.nativeEnum(PaymentStatus).default(PaymentStatus.PENDING),
+  paymentMethod: z.nativeEnum(PaymentMethod).optional(),
+  paymentReference: z.string().optional(),
+  paidAt: z.date().optional(),
+  source: z.enum(["Website", "Mobile App", "Phone", "In Person", "WhatsApp", "Agent", "Other"]).default("Website"),
+  notes: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+// Booking type
+export type Booking = z.infer<typeof bookingSchema>
+
+// Booking with ID type (for database records)
+export type BookingWithId = Booking & { id: string }
+
+// Booking with relations
+export type BookingWithRelations = BookingWithId & {
+  tickets: TicketWithId[]
+  customer?: {
+    id: string
+    firstName: string
+    lastName: string
+    email: string
+  }
+}
+
+// Receipt schema
+export const receiptSchema = z.object({
+  id: z.string().optional(),
+  bookingId: z.string(),
+  receiptNumber: z.string(),
+  type: z.enum(["Digital", "Printed", "Both"]).default("Digital"),
+  amount: z.number().min(0, "Amount must be at least 0"),
+  currency: z.string().default("USD"),
+  issuedAt: z.date(),
+  issuedBy: z.string().optional(),
+  sentTo: z.string().optional(),
+  sentAt: z.date().optional(),
+  printedAt: z.date().optional(),
+  digitalUrl: z.string().optional(),
+  notes: z.string().optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+// Receipt type
+export type Receipt = z.infer<typeof receiptSchema>
+
+// Receipt with ID type (for database records)
+export type ReceiptWithId = Receipt & { id: string }
+
+// Discount schema
+export const discountSchema = z.object({
+  id: z.string().optional(),
+  code: z.string().min(2, "Code must be at least 2 characters"),
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  description: z.string().optional(),
+  type: z.enum(["Percentage", "Fixed Amount"]).default("Percentage"),
+  value: z.number().min(0, "Value must be at least 0"),
+  minPurchaseAmount: z.number().min(0, "Minimum purchase amount must be at least 0").optional(),
+  maxDiscountAmount: z.number().min(0, "Maximum discount amount must be at least 0").optional(),
+  startDate: z.date(),
+  endDate: z.date().optional(),
+  usageLimit: z.number().min(0, "Usage limit must be at least 0").optional(),
+  usageCount: z.number().min(0, "Usage count must be at least 0").default(0),
+  isActive: z.boolean().default(true),
+  applicableRoutes: z.array(z.string()).optional(),
+  applicableTripTypes: z.array(z.string()).optional(),
+  applicableUserGroups: z.array(z.string()).optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional(),
+})
+
+// Discount type
+export type Discount = z.infer<typeof discountSchema>
+
+// Discount with ID type (for database records)
+export type DiscountWithId = Discount & { id: string }
